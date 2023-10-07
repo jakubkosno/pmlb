@@ -20,7 +20,23 @@ type DatasetInfo struct {
 	Task                 string  `json:"task"`
 }
 
-func ReadAllSummaryStats() ([]DatasetInfo, error) {
+func FindDatasets(task string) ([]string, error) {
+	var desiredDatasets []string
+	allDatasets, err := readAllSummaryStats()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, datasetInfo := range allDatasets {
+		if datasetInfo.Task == task {
+			desiredDatasets = append(desiredDatasets, datasetInfo.Dataset)
+		}
+	}
+
+	return desiredDatasets, nil
+}
+
+func readAllSummaryStats() ([]DatasetInfo, error) {
 	url := "https://raw.githubusercontent.com/EpistasisLab/pmlb/master/pmlb/all_summary_stats.tsv"
 	// Send GET request
 	response, err := http.Get(url)
