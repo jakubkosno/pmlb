@@ -23,89 +23,36 @@ type DatasetInfo struct {
 }
 
 func FetchData(datasetName string) ([][]string, error) {
-	url := "https://github.com/EpistasisLab/pmlb/raw/master/datasets/" + datasetName + "/" + datasetName + ".tsv.gz"
+	content, err := fetchDataImpl(datasetName)
+	if err == nil {
+		var tsvData [][]string
+		lines := strings.Split(content, "\n")
+		for _, line := range lines {
+			fields := strings.Split(line, "\t")
+			tsvData = append(tsvData, fields)
+		}
 
-	// Send GET request
-	response, err := http.Get(url)
-	if err != nil {
-		fmt.Println("Error while reading file: ", err)
-		return nil, err
+		return tsvData, nil
 	}
-
-	defer response.Body.Close()
-	if response.StatusCode != http.StatusOK {
-		fmt.Printf("Error: HTTP status: %d\n", response.StatusCode)
-		return nil, err
-	}
-
-	// Unpack gzip
-	gzipReader, err := gzip.NewReader(response.Body)
-	if err != nil {
-		fmt.Println("Error unpacking gzip file: ", err)
-		return nil, err
-	}
-	defer gzipReader.Close()
-
-	// Read .tsv file
-	var contentBuilder strings.Builder
-	_, err = io.Copy(&contentBuilder, gzipReader)
-	if err != nil {
-		fmt.Println("Error reading file content: ", err)
-		return nil, err
-	}
-
-	var tsvData [][]string
-	lines := strings.Split(contentBuilder.String(), "\n")
-	for _, line := range lines {
-		fields := strings.Split(line, "\t")
-		tsvData = append(tsvData, fields)
-	}
-
-	return tsvData, nil
+	return nil, err
 }
 
 func FetchXYData(datasetName string) ([][]string, []string, error) {
-	url := "https://github.com/EpistasisLab/pmlb/raw/master/datasets/" + datasetName + "/" + datasetName + ".tsv.gz"
-
-	// Send GET request
-	response, err := http.Get(url)
-	if err != nil {
-		fmt.Println("Error while reading file: ", err)
-		return nil, nil, err
-	}
-
-	defer response.Body.Close()
-	if response.StatusCode != http.StatusOK {
-		fmt.Printf("Error: HTTP status: %d\n", response.StatusCode)
-		return nil, nil, err
-	}
-
-	// Unpack gzip
-	gzipReader, err := gzip.NewReader(response.Body)
-	if err != nil {
-		fmt.Println("Error unpacking gzip file: ", err)
-		return nil, nil, err
-	}
-	defer gzipReader.Close()
-
-	// Read .tsv file
-	var contentBuilder strings.Builder
-	_, err = io.Copy(&contentBuilder, gzipReader)
-	if err != nil {
-		fmt.Println("Error reading file content: ", err)
-		return nil, nil, err
-	}
-
-	var tsvXData [][]string
-	var tsvYData []string
-	lines := strings.Split(contentBuilder.String(), "\n")
-	for _, line := range lines {
-		fields := strings.Split(line, "\t")
-		tsvXData = append(tsvXData, fields[:len(fields) - 1])
-		tsvYData = append(tsvYData, fields[len(fields) - 1])
-	}
+	content, err := fetchDataImpl(datasetName)
+	if err == nil {
+		var tsvXData [][]string
+		var tsvYData []string
+		lines := strings.Split(content, "\n")
+		for _, line := range lines {
+			fields := strings.Split(line, "\t")
+			tsvXData = append(tsvXData, fields[:len(fields) - 1])
+			tsvYData = append(tsvYData, fields[len(fields) - 1])
+		}
 
 	return tsvXData, tsvYData, nil
+	}
+
+	return nil, nil, err
 }
 
 func FindDatasets(task string) ([]string, error) {
@@ -122,6 +69,41 @@ func FindDatasets(task string) ([]string, error) {
 	}
 
 	return desiredDatasets, nil
+}
+
+func fetchDataImpl(datasetName string) (string, error) {
+	url := "https://github.com/EpistasisLab/pmlb/raw/master/datasets/" + datasetName + "/" + datasetName + ".tsv.gz"
+
+	// Send GET request
+	response, err := http.Get(url)
+	if err != nil {
+		fmt.Println("Error while reading file: ", err)
+		return "", err
+	}
+
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		fmt.Printf("Error: HTTP status: %d\n", response.StatusCode)
+		return "", err
+	}
+
+	// Unpack gzip
+	gzipReader, err := gzip.NewReader(response.Body)
+	if err != nil {
+		fmt.Println("Error unpacking gzip file: ", err)
+		return "", err
+	}
+	defer gzipReader.Close()
+
+	// Read .tsv file
+	var contentBuilder strings.Builder
+	_, err = io.Copy(&contentBuilder, gzipReader)
+	if err != nil {
+		fmt.Println("Error reading file content: ", err)
+		return "", err
+	}
+
+	return contentBuilder.String(), nil
 }
 
 func readAllSummaryStats() ([]DatasetInfo, error) {
