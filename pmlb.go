@@ -22,8 +22,8 @@ type DatasetInfo struct {
 	Task                 string  `json:"task"`
 }
 
-func FetchData(dataset string) ([][]string, error) {
-	url := "https://github.com/EpistasisLab/pmlb/raw/master/datasets/" + dataset + "/" + dataset + ".tsv.gz"
+func FetchData(datasetName string) ([][]string, error) {
+	url := "https://github.com/EpistasisLab/pmlb/raw/master/datasets/" + datasetName + "/" + datasetName + ".tsv.gz"
 
 	// Send GET request
 	response, err := http.Get(url)
@@ -62,6 +62,50 @@ func FetchData(dataset string) ([][]string, error) {
 	}
 
 	return tsvData, nil
+}
+
+func FetchXYData(datasetName string) ([][]string, []string, error) {
+	url := "https://github.com/EpistasisLab/pmlb/raw/master/datasets/" + datasetName + "/" + datasetName + ".tsv.gz"
+
+	// Send GET request
+	response, err := http.Get(url)
+	if err != nil {
+		fmt.Println("Error while reading file: ", err)
+		return nil, nil, err
+	}
+
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		fmt.Printf("Error: HTTP status: %d\n", response.StatusCode)
+		return nil, nil, err
+	}
+
+	// Unpack gzip
+	gzipReader, err := gzip.NewReader(response.Body)
+	if err != nil {
+		fmt.Println("Error unpacking gzip file: ", err)
+		return nil, nil, err
+	}
+	defer gzipReader.Close()
+
+	// Read .tsv file
+	var contentBuilder strings.Builder
+	_, err = io.Copy(&contentBuilder, gzipReader)
+	if err != nil {
+		fmt.Println("Error reading file content: ", err)
+		return nil, nil, err
+	}
+
+	var tsvXData [][]string
+	var tsvYData []string
+	lines := strings.Split(contentBuilder.String(), "\n")
+	for _, line := range lines {
+		fields := strings.Split(line, "\t")
+		tsvXData = append(tsvXData, fields[:len(fields) - 1])
+		tsvYData = append(tsvYData, fields[len(fields) - 1])
+	}
+
+	return tsvXData, tsvYData, nil
 }
 
 func FindDatasets(task string) ([]string, error) {
