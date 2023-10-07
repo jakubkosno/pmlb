@@ -31,7 +31,6 @@ func FetchData(datasetName string) ([][]string, error) {
 			fields := strings.Split(line, "\t")
 			tsvData = append(tsvData, fields)
 		}
-
 		return tsvData, nil
 	}
 	return nil, err
@@ -45,13 +44,11 @@ func FetchXYData(datasetName string) ([][]string, []string, error) {
 		lines := strings.Split(content, "\n")
 		for _, line := range lines {
 			fields := strings.Split(line, "\t")
-			tsvXData = append(tsvXData, fields[:len(fields) - 1])
-			tsvYData = append(tsvYData, fields[len(fields) - 1])
+			tsvXData = append(tsvXData, fields[:len(fields)-1])
+			tsvYData = append(tsvYData, fields[len(fields)-1])
 		}
-
-	return tsvXData, tsvYData, nil
+		return tsvXData, tsvYData, nil
 	}
-
 	return nil, nil, err
 }
 
@@ -61,32 +58,27 @@ func FindDatasets(task string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	for _, datasetInfo := range allDatasets {
 		if datasetInfo.Task == task {
 			desiredDatasets = append(desiredDatasets, datasetInfo.Dataset)
 		}
 	}
-
 	return desiredDatasets, nil
 }
 
 func fetchDataImpl(datasetName string) (string, error) {
 	url := "https://github.com/EpistasisLab/pmlb/raw/master/datasets/" + datasetName + "/" + datasetName + ".tsv.gz"
-
 	// Send GET request
 	response, err := http.Get(url)
 	if err != nil {
 		fmt.Println("Error while reading file: ", err)
 		return "", err
 	}
-
 	defer response.Body.Close()
 	if response.StatusCode != http.StatusOK {
 		fmt.Printf("Error: HTTP status: %d\n", response.StatusCode)
 		return "", err
 	}
-
 	// Unpack gzip
 	gzipReader, err := gzip.NewReader(response.Body)
 	if err != nil {
@@ -94,7 +86,6 @@ func fetchDataImpl(datasetName string) (string, error) {
 		return "", err
 	}
 	defer gzipReader.Close()
-
 	// Read .tsv file
 	var contentBuilder strings.Builder
 	_, err = io.Copy(&contentBuilder, gzipReader)
@@ -102,10 +93,8 @@ func fetchDataImpl(datasetName string) (string, error) {
 		fmt.Println("Error reading file content: ", err)
 		return "", err
 	}
-
 	return contentBuilder.String(), nil
 }
-
 func readAllSummaryStats() ([]DatasetInfo, error) {
 	url := "https://raw.githubusercontent.com/EpistasisLab/pmlb/master/pmlb/all_summary_stats.tsv"
 	// Send GET request
@@ -114,28 +103,24 @@ func readAllSummaryStats() ([]DatasetInfo, error) {
 		return nil, err
 	}
 	defer response.Body.Close()
-
 	if response.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("Error: HTTP status: %d", response.StatusCode)
 	}
-
 	// Read HTTP response
 	content, err := ioutil.ReadAll(response.Body)
 	if err != nil {
 		return nil, err
 	}
-
 	return parseAllSummaryStats(string(content)), nil
 }
 
-func parseAllSummaryStats(content string) ([]DatasetInfo){
+func parseAllSummaryStats(content string) []DatasetInfo {
 	lines := strings.Split(content, "\n")
 	var allDatasets []DatasetInfo
 	for i, line := range lines {
 		if i == 0 {
 			continue // Skip headers
 		}
-
 		fields := strings.Split(line, "\t")
 		// Only create DatasetInfo if row has all information
 		if len(fields) == 10 {
@@ -151,11 +136,9 @@ func parseAllSummaryStats(content string) ([]DatasetInfo){
 				Imbalance:            parseFloat(fields[8]),
 				Task:                 fields[9],
 			}
-
 			allDatasets = append(allDatasets, datasetInfo)
 		}
 	}
-
 	return allDatasets
 }
 
