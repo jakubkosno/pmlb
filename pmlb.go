@@ -1,7 +1,9 @@
 package pmlb
 
 import (
+	"compress/gzip"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -18,6 +20,48 @@ type DatasetInfo struct {
 	NClasses             int     `json:"n_classes"`
 	Imbalance            float64 `json:"imbalance"`
 	Task                 string  `json:"task"`
+}
+
+func FetchData(dataset string) ([][]string, error) {
+	url := "https://github.com/EpistasisLab/pmlb/raw/master/datasets/" + dataset + "/" + dataset + ".tsv.gz"
+
+	// Send GET request
+	response, err := http.Get(url)
+	if err != nil {
+		fmt.Println("Error while reading file: ", err)
+		return nil, err
+	}
+
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		fmt.Printf("Error: HTTP status: %d\n", response.StatusCode)
+		return nil, err
+	}
+
+	// Unpack gzip
+	gzipReader, err := gzip.NewReader(response.Body)
+	if err != nil {
+		fmt.Println("Error unpacking gzip file: ", err)
+		return nil, err
+	}
+	defer gzipReader.Close()
+
+	// Read .tsv file
+	var contentBuilder strings.Builder
+	_, err = io.Copy(&contentBuilder, gzipReader)
+	if err != nil {
+		fmt.Println("Error reading file content: ", err)
+		return nil, err
+	}
+
+	var tsvData [][]string
+	lines := strings.Split(contentBuilder.String(), "\n")
+	for _, line := range lines {
+		fields := strings.Split(line, "\t")
+		tsvData = append(tsvData, fields)
+	}
+
+	return tsvData, nil
 }
 
 func FindDatasets(task string) ([]string, error) {
